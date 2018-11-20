@@ -62,7 +62,7 @@ app.get('/podcast', (req, res) => {
   })
   .catch((e) => {
     console.error(e);
-  })
+  });
 });
 
 app.listen(8100, () => console.log('Listening!'));
