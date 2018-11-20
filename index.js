@@ -3,7 +3,6 @@ const Promise = require('bluebird');
 const https = require('https');
 const xml2js = Promise.promisifyAll(require('xml2js'));
 
-
 const app = express();
 
 const config = {
@@ -20,6 +19,8 @@ app.get('/podcast', (req, res) => {
   let dat = '';
 
   Promise.resolve()
+
+  // connect to podsync
   .then(() => new Promise((res,rej) => {
     https.get(config.url, (getdat) => {
       if (getdat.statusCode == 200) {
@@ -29,6 +30,8 @@ app.get('/podcast', (req, res) => {
       }
     });
   }))
+
+  // wait for data
   .then((res) => {
     res.on('data', function (chunk) {
       dat += chunk;
@@ -36,9 +39,13 @@ app.get('/podcast', (req, res) => {
 
     return Promise.fromCallback((cb) => res.on('end', cb));
   })
+
+  // parse xml into JS object
   .then(() => {
     return xml2js.parseStringAsync(dat);
   })
+
+  // make edits
   .then((jspod) => {
     jspod.rss.channel[0].title = [config.title];
     
@@ -54,9 +61,11 @@ app.get('/podcast', (req, res) => {
       jspod.rss.channel[0].item[kk]['itunes:image'] = [{$: {href: config.cover}}];
     }
 
+    // convert JS object back to XML
     const builder = new xml2js.Builder();
     let xml = builder.buildObject(jspod);
 
+    // send to client
     res.set('Content-Type', 'text/xml');
     res.send(xml);
   })
